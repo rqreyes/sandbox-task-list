@@ -1,9 +1,9 @@
 "use client";
 
-import { Geist, Geist_Mono } from "next/font/google";
-import { AppRouterCacheProvider } from "@mui/material-nextjs/v13-appRouter";
-import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { CssBaseline } from "@mui/material";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { AppRouterCacheProvider } from "@mui/material-nextjs/v13-appRouter";
+import { Geist, Geist_Mono } from "next/font/google";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
