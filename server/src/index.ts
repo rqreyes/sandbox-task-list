@@ -1,6 +1,6 @@
-import express, { Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import express, { Request, Response } from "express";
 
 dotenv.config();
 
@@ -19,7 +19,7 @@ interface Todo {
 }
 
 // Temp local data
-let todos: Todo[] = [
+const todos: Todo[] = [
   { id: 1, title: "Review javascript", completed: true },
   { id: 2, title: "Review React", completed: false },
   { id: 3, title: "Build TODO App", completed: false },

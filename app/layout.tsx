@@ -4,6 +4,9 @@ import { CssBaseline } from "@mui/material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v13-appRouter";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SnackbarProvider } from "notistack";
+
+import SnackbarButtonClose from "@/app/components/general/SnackbarButtonClose";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,6 +20,16 @@ const geistMono = Geist_Mono({
 
 const theme = createTheme({
   components: {
+    MuiButton: {
+      defaultProps: {
+        disableElevation: true,
+      },
+      styleOverrides: {
+        root: {
+          textTransform: "none",
+        },
+      },
+    },
     MuiCssBaseline: {
       styleOverrides: {
         "*": { boxSizing: "border-box" },
@@ -32,6 +45,9 @@ const theme = createTheme({
     },
   },
 });
+const SnackbarAction = (snackbarKey: number | string) => (
+  <SnackbarButtonClose snackbarKey={snackbarKey} />
+);
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
@@ -40,7 +56,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
             <CssBaseline />
-            {children}
+            <SnackbarProvider action={SnackbarAction}>
+              {children}
+            </SnackbarProvider>
           </ThemeProvider>
         </AppRouterCacheProvider>
       </body>
