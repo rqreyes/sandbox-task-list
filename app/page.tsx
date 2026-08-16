@@ -25,14 +25,14 @@ import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { SnackbarText } from "@/app/components/general/SnackbarText";
 
 interface IFormValues {
-  taskList: { completed: boolean; title: string }[];
+  taskList: { isCompleted: boolean; title: string }[];
 }
 
 const defaultValues: IFormValues = {
   taskList: [
-    { completed: false, title: "My first task" },
-    { completed: true, title: "Completed task" },
-    { completed: false, title: "" },
+    { isCompleted: false, title: "My first task" },
+    { isCompleted: true, title: "Completed task" },
+    { isCompleted: false, title: "" },
   ],
 };
 
@@ -95,7 +95,7 @@ export default function Home() {
                 <Stack direction="row" key={field.id} spacing={1}>
                   <Controller
                     control={control}
-                    name={`taskList.${index}.completed`}
+                    name={`taskList.${index}.isCompleted`}
                     render={({ field: { value, ...field } }) => (
                       <Checkbox {...field} checked={value} />
                     )}
@@ -114,7 +114,7 @@ export default function Home() {
                         slotProps={{
                           htmlInput: {
                             style: {
-                              textDecoration: taskListWatch[index]?.completed
+                              textDecoration: taskListWatch[index]?.isCompleted
                                 ? "line-through"
                                 : "none",
                             },
@@ -145,7 +145,7 @@ export default function Home() {
             }}
           >
             <Button
-              onClick={() => append({ completed: false, title: "" })}
+              onClick={() => append({ isCompleted: false, title: "" })}
               startIcon={<AddIcon />}
               type="button"
               variant="contained"
