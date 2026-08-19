@@ -8,7 +8,7 @@ interface Todo {
 }
 
 // In-memory array (mock database)
-let todos: Todo[] = [
+const todos: Todo[] = [
   { id: 1, title: "Learn Next.js Backend", completed: true },
   { id: 2, title: "Build Route Handlers", completed: false },
 ];
