@@ -12,7 +12,7 @@ declare global {
 }
 
 // Helper to access data
-let todos = global.sharedTodos || [
+const todos = global.sharedTodos || [
   { id: 1, title: "Learn Next.js Backend", completed: true },
   { id: 2, title: "Build Route Handlers", completed: false },
 ];

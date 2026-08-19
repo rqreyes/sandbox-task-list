@@ -3,16 +3,15 @@
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
-  Restore as RestoreIcon,
-  Save as SaveIcon,
+  Edit as EditIcon,
 } from "@mui/icons-material";
 import {
   Button,
   Card,
-  CardActions,
   CardContent,
   CardHeader,
   Checkbox,
+  CircularProgress,
   Container,
   IconButton,
   Stack,
@@ -20,56 +19,113 @@ import {
   useTheme,
 } from "@mui/material";
 import { useSnackbar } from "notistack";
-import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
+import { useState } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import useSWR from "swr";
+import useSWRMutation from "swr/mutation";
 
+import { ErrorPage } from "@/app/components/general/ErrorPage";
+import { LoadingPage } from "@/app/components/general/LoadingPage";
 import { SnackbarText } from "@/app/components/general/SnackbarText";
+import { TaskDialogUpdate } from "@/app/components/tasks/TaskDialogUpdate";
+import { fetcherGet, fetcherTrigger } from "@/app/utils/fetchers";
 
-interface IFormValues {
-  taskList: { isCompleted: boolean; title: string }[];
+enum DialogList {
+  Delete,
+  Update,
+}
+export interface IFormValues {
+  id: number;
+  isCompleted: boolean;
+  title: string;
+}
+export interface ITaskItem {
+  id: number;
+  isCompleted: boolean;
+  title: string;
+}
+export interface IResTaskList {
+  taskList: ITaskItem[];
 }
 
-const defaultValues: IFormValues = {
-  taskList: [
-    { isCompleted: false, title: "My first task" },
-    { isCompleted: true, title: "Completed task" },
-    { isCompleted: false, title: "" },
-  ],
+export const defaultValues: IFormValues = {
+  id: 0,
+  isCompleted: false,
+  title: "",
 };
 
 export default function Home() {
+  // state
+  // ------------------------------------------------------------
+  const [dialogCurrent, setDialogCurrent] = useState({
+    dialogItem: 0,
+    task: {
+      id: 0,
+      isCompleted: false,
+      title: "",
+    },
+  });
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
   // hooks
   // ------------------------------------------------------------
   const {
     control,
     handleSubmit,
     formState: { errors },
+    reset,
   } = useForm({
     defaultValues,
     mode: "onBlur",
   });
-  const { append, fields, remove } = useFieldArray({
-    control,
-    name: "taskList",
-  });
-  const taskListWatch = useWatch({ control, name: "taskList" });
+  const IsCompletedWatch = useWatch({ control, name: "isCompleted" });
   const { enqueueSnackbar } = useSnackbar();
   const theme = useTheme();
+
+  // fetching, mutation, and revalidation
+  // ------------------------------------------------------------
+  // const {
+  //   data,
+  //   error,
+  // }: {
+  //   data: IResTaskList;
+  //   error: Error | undefined;
+  // } = useSWR("/api/tasks", fetcherGet);
+  const { isMutating, trigger } = useSWRMutation("/api/tasks", fetcherTrigger);
+  const data = {
+    taskList: [
+      { id: 1, isCompleted: false, title: "Hello world" },
+      { id: 2, isCompleted: false, title: "My first task" },
+      { id: 3, isCompleted: true, title: "Completed task" },
+    ],
+  };
+  const error = false;
+
+  // logic
+  // ------------------------------------------------------------
+  if (error) return <ErrorPage />;
+  if (!data) return <LoadingPage />;
 
   // form submission
   // ------------------------------------------------------------
   const onSubmit = async (formValues: IFormValues) => {
     try {
       // TODO: update database
-      console.log(formValues);
+      console.log("formValues: ", formValues);
+      // await trigger({
+      //   body: formValues,
+      //   method: "POST",
+      // });
 
       enqueueSnackbar(
         <SnackbarText>
-          Task list has been <strong>saved</strong>
+          Task list has been <strong>added</strong>
         </SnackbarText>,
         {
           variant: "success",
         }
       );
+      reset({ isCompleted: false, title: "" });
     } catch (error) {
       if (error instanceof Error) {
         enqueueSnackbar(<strong>{error.message}</strong>, {
@@ -85,102 +141,124 @@ export default function Home() {
   // render
   // ------------------------------------------------------------
   return (
-    <Container component="main" maxWidth="sm">
-      <Card>
-        <form autoComplete="off" onSubmit={handleSubmit(onSubmit)}>
+    <>
+      <Container
+        component="main"
+        maxWidth="sm"
+        sx={{ display: "flex", flexDirection: "column", gap: theme.spacing(2) }}
+      >
+        <Card>
           <CardHeader title="My Task List" sx={{ textAlign: "center" }} />
-          <CardContent>
-            {fields.map((field, index) => {
+          <CardContent
+            sx={{ height: "40vh", overflow: "auto", pl: theme.spacing(4) }}
+          >
+            {data.taskList.map(({ id, isCompleted, title }) => {
               return (
-                <Stack direction="row" key={field.id} spacing={1}>
-                  <Controller
-                    control={control}
-                    name={`taskList.${index}.isCompleted`}
-                    render={({ field: { value, ...field } }) => (
-                      <Checkbox {...field} checked={value} />
-                    )}
-                  />
-                  <Controller
-                    control={control}
-                    name={`taskList.${index}.title`}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        error={Boolean(errors.taskList?.[index]?.title)}
-                        fullWidth
-                        helperText={errors.taskList?.[index]?.title?.message}
-                        label=""
-                        required
-                        slotProps={{
-                          htmlInput: {
-                            style: {
-                              textDecoration: taskListWatch[index]?.isCompleted
-                                ? "line-through"
-                                : "none",
-                            },
-                          },
-                        }}
-                        variant="standard"
-                      />
-                    )}
-                    rules={{
-                      required: "Title is required",
-                      validate: (value) => {
-                        return Boolean(value.trim()) || "Title is required";
+                <Stack direction="row" key={id} spacing={1}>
+                  <TextField
+                    defaultValue={title}
+                    fullWidth
+                    multiline
+                    slotProps={{
+                      htmlInput: {
+                        readOnly: true,
+                        style: {
+                          textDecoration: isCompleted ? "line-through" : "none",
+                        },
                       },
                     }}
+                    variant="standard"
                   />
                   <IconButton>
-                    <DeleteIcon onClick={() => remove(index)} />
+                    <EditIcon
+                      onClick={() => {
+                        setDialogCurrent({
+                          dialogItem: DialogList.Update,
+                          task: { id, isCompleted, title },
+                        });
+                        setIsDialogOpen(true);
+                      }}
+                    />
+                  </IconButton>
+                  <IconButton>
+                    <DeleteIcon />
                   </IconButton>
                 </Stack>
               );
             })}
           </CardContent>
-          <CardActions
-            sx={{
-              justifyContent: "space-between",
-              pb: theme.spacing(2),
-              px: theme.spacing(2),
-            }}
-          >
-            <Button
-              onClick={() => append({ isCompleted: false, title: "" })}
-              startIcon={<AddIcon />}
-              type="button"
-              variant="contained"
-            >
-              Add task
-            </Button>
-            <Stack direction="row" spacing={1}>
-              <Button
-                onClick={() => {
-                  enqueueSnackbar(
-                    <SnackbarText>
-                      Task list has been <strong>reset</strong>
-                    </SnackbarText>,
-                    {
-                      variant: "success",
-                    }
-                  );
-                }}
-                startIcon={<RestoreIcon />}
-                type="button"
-                variant="outlined"
+        </Card>
+        <Card>
+          <CardContent>
+            <form autoComplete="off" onSubmit={handleSubmit(onSubmit)}>
+              <Stack direction="row" spacing={1}>
+                <Controller
+                  control={control}
+                  name="isCompleted"
+                  render={({ field: { value, ...field } }) => (
+                    <Checkbox {...field} checked={value} />
+                  )}
+                />
+                <Controller
+                  control={control}
+                  name="title"
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      error={Boolean(errors.title)}
+                      fullWidth
+                      helperText={errors.title?.message}
+                      label=""
+                      multiline
+                      required
+                      slotProps={{
+                        htmlInput: {
+                          style: {
+                            textDecoration: IsCompletedWatch
+                              ? "line-through"
+                              : "none",
+                          },
+                        },
+                      }}
+                      variant="standard"
+                    />
+                  )}
+                  rules={{
+                    required: "Title is required",
+                    validate: (value) => {
+                      return Boolean(value.trim()) || "Title is required";
+                    },
+                  }}
+                />
+              </Stack>
+              <Stack
+                direction="row"
+                sx={{ justifyContent: "flex-end", mt: theme.spacing(1) }}
               >
-                Reset
-              </Button>
-              <Button
-                startIcon={<SaveIcon />}
-                type="submit"
-                variant="contained"
-              >
-                Save
-              </Button>
-            </Stack>
-          </CardActions>
-        </form>
-      </Card>
-    </Container>
+                <Button
+                  disabled={Object.keys(errors).length > 0 || isMutating}
+                  startIcon={
+                    isMutating ? <CircularProgress size="1rem" /> : <AddIcon />
+                  }
+                  type="submit"
+                  variant="contained"
+                >
+                  Add task
+                </Button>
+              </Stack>
+            </form>
+          </CardContent>
+        </Card>
+      </Container>
+
+      {/* update dialog */}
+      <TaskDialogUpdate
+        handleDialogClose={() => setIsDialogOpen(false)}
+        isDialogOpen={
+          dialogCurrent.dialogItem === DialogList.Update && isDialogOpen
+        }
+        taskItem={dialogCurrent.task}
+      />
+    </>
   );
 }
