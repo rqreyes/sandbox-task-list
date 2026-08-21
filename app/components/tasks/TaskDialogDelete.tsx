@@ -3,6 +3,7 @@ import { DialogContentText, Typography, useTheme } from "@mui/material";
 import { useSnackbar } from "notistack";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { mutate } from "swr";
 import useSWRMutation from "swr/mutation";
 
 import { DialogContainer } from "@/app/components/general/DialogContainer";
@@ -29,7 +30,7 @@ export const TaskDialogDelete = ({
   // fetching, mutation, and revalidation
   // ------------------------------------------------------------
   const { isMutating, trigger } = useSWRMutation(
-    `/api/task/${taskItem.id}`,
+    `/api/todos/${taskItem.id}`,
     fetcherTrigger
   );
 
@@ -59,18 +60,24 @@ export const TaskDialogDelete = ({
 
   // form submission
   // ------------------------------------------------------------
-  const onSubmit = async (formValues: IFormValues) => {
+  const onSubmit = async ({ id, title }: IFormValues) => {
+    console.log("id: ", id);
+    const body = {
+      id,
+    };
+
     try {
-      // TODO: update database
-      console.log("formValues: ", formValues);
-      // await trigger({
-      //   body: formValues,
-      //   method: "DELETE",
-      // });
+      // update database
+      await trigger({
+        body,
+        method: "DELETE",
+      });
+      // update UI
+      mutate("/api/todos");
 
       enqueueSnackbar(
         <SnackbarText>
-          <strong>{formValues.title}</strong> task has been deleted
+          <strong>{title}</strong> task has been deleted
         </SnackbarText>,
         {
           variant: "success",
