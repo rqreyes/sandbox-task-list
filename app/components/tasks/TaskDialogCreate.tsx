@@ -12,6 +12,7 @@ import {
   defaultValues,
   IFormValues,
 } from "@/app/components/tasks/TaskDialogForm";
+import { IDataTaskItem } from "@/app/types/tasks";
 import { fetcherTrigger } from "@/app/utils/fetchers";
 
 interface ITaskDialogCreateProps {
@@ -25,7 +26,7 @@ export const TaskDialogCreate = ({
 }: ITaskDialogCreateProps) => {
   // fetching, mutation, and revalidation
   // ------------------------------------------------------------
-  const { isMutating, trigger } = useSWRMutation("/api/tasks", fetcherTrigger);
+  const { isMutating, trigger } = useSWRMutation("/api/todos", fetcherTrigger);
 
   // hooks
   // ------------------------------------------------------------
@@ -51,24 +52,29 @@ export const TaskDialogCreate = ({
   useEffect(() => {
     if (isDialogOpen) {
       clearErrors();
-      reset({ isCompleted: false, title: "" });
+      reset({ id: 0, isCompleted: false, title: "" });
     }
   }, [clearErrors, isDialogOpen, reset]);
 
   // form submission
   // ------------------------------------------------------------
-  const onSubmit = async (formValues: IFormValues) => {
+  const onSubmit = async ({ id, isCompleted, title }: IFormValues) => {
     try {
-      // TODO: update database
-      console.log("formValues: ", formValues);
-      // await trigger({
-      //   body: formValues,
-      //   method: "POST",
-      // });
+      const body: IDataTaskItem = {
+        id,
+        completed: isCompleted,
+        title,
+      };
+
+      // update database
+      await trigger({
+        body,
+        method: "POST",
+      });
 
       enqueueSnackbar(
         <SnackbarText>
-          <strong>{formValues.title}</strong> task has been added
+          <strong>{title}</strong> task has been added
         </SnackbarText>,
         {
           variant: "success",

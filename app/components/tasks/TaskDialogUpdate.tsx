@@ -2,6 +2,7 @@ import { Edit as EditIcon } from "@mui/icons-material";
 import { useSnackbar } from "notistack";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
+import { mutate } from "swr";
 import useSWRMutation from "swr/mutation";
 
 import { DialogContainer } from "@/app/components/general/DialogContainer";
@@ -13,6 +14,7 @@ import {
   IFormValues,
 } from "@/app/components/tasks/TaskDialogForm";
 import { ITaskItem } from "@/app/page";
+import { IDataTaskItem } from "@/app/types/tasks";
 import { fetcherTrigger } from "@/app/utils/fetchers";
 
 interface ITaskDialogUpdateProps {
@@ -29,7 +31,7 @@ export const TaskDialogUpdate = ({
   // fetching, mutation, and revalidation
   // ------------------------------------------------------------
   const { isMutating, trigger } = useSWRMutation(
-    `/api/task/${taskItem.id}`,
+    `/api/todos/${taskItem.id}`,
     fetcherTrigger
   );
 
@@ -67,18 +69,25 @@ export const TaskDialogUpdate = ({
 
   // form submission
   // ------------------------------------------------------------
-  const onSubmit = async (formValues: IFormValues) => {
+  const onSubmit = async ({ id, isCompleted, title }: IFormValues) => {
+    const body: IDataTaskItem = {
+      id,
+      completed: isCompleted,
+      title,
+    };
+
     try {
-      // TODO: update database
-      console.log("formValues: ", formValues);
-      // await trigger({
-      //   body: formValues,
-      //   method: "PATCH",
-      // });
+      // update database
+      await trigger({
+        body,
+        method: "PUT",
+      });
+      // update UI
+      mutate("/api/todos");
 
       enqueueSnackbar(
         <SnackbarText>
-          <strong>{formValues.title}</strong> task has been updated
+          <strong>{title}</strong> task has been updated
         </SnackbarText>,
         {
           variant: "success",

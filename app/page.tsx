@@ -29,17 +29,13 @@ import { LoadingPage } from "@/app/components/general/LoadingPage";
 import { TaskDialogCreate } from "@/app/components/tasks/TaskDialogCreate";
 import { TaskDialogDelete } from "@/app/components/tasks/TaskDialogDelete";
 import { TaskDialogUpdate } from "@/app/components/tasks/TaskDialogUpdate";
+import { IDataTaskItem } from "@/app/types/tasks";
 import { fetcherGet } from "@/app/utils/fetchers";
 
 enum DialogList {
   Create,
   Delete,
   Update,
-}
-interface IResTaskItem {
-  id: number;
-  completed: boolean;
-  title: string;
 }
 export interface ITaskItem {
   id: number;
@@ -66,9 +62,10 @@ export default function Home() {
     data,
     error,
   }: {
-    data: IResTaskItem[];
+    data: IDataTaskItem[];
     error: Error | undefined;
   } = useSWR("/api/todos", fetcherGet);
+  console.log("data: ", data);
 
   // logic
   // ------------------------------------------------------------
@@ -76,10 +73,13 @@ export default function Home() {
   if (!data) return <LoadingPage />;
 
   const handleDialogClose = () => setIsDialogOpen(false);
-  // convert response array to an object because responses are usually in object form
-  const dataNew = {
-    taskList: data,
-  };
+  const dataTaskList = data.map(({ id, completed, title }) => {
+    return {
+      id,
+      isCompleted: completed,
+      title,
+    };
+  });
 
   // render
   // ------------------------------------------------------------
@@ -90,7 +90,7 @@ export default function Home() {
           <CardHeader title="My Task List" />
           <CardContent>
             <List>
-              {dataNew.taskList.map(({ id, completed: isCompleted, title }) => {
+              {dataTaskList.map(({ id, isCompleted, title }) => {
                 return (
                   <ListItem disablePadding key={id}>
                     <ListItemIcon>
