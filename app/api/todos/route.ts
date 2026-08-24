@@ -1,42 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
-
-// Define the Todo type
-interface Todo {
-  id: number;
-  title: string;
-  completed: boolean;
-}
-
-// In-memory array (mock database)
-const todos: Todo[] = [
-  { id: 1, title: "Learn Next.js Backend", completed: true },
-  { id: 2, title: "Build Route Handlers", completed: false },
-];
+import { query } from "@/lib/db";
 
 // GET: Fetch all todos
 export async function GET() {
-  return NextResponse.json(todos, { status: 200 });
+  try {
+    const result = await query("SELECT * FROM todos ORDER BY id ASC");
+    return NextResponse.json(result.rows, { status: 200 });
+  } catch (error) {
+    console.error("DATABASE ERROR:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch todos" },
+      { status: 500 }
+    );
+  }
 }
 
 // POST: Create a new todo
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { title } = body;
+    const { title } = await request.json();
 
-    if (!title) {
-      return NextResponse.json({ error: "Title is required" }, { status: 400 });
-    }
+    const result = await query(
+      "INSERT INTO todos (title, completed) VALUES ($1, $2) RETURNING *",
+      [title, false]
+    );
 
-    const newTodo: Todo = {
-      id: Date.now(),
-      title,
-      completed: false,
-    };
-
-    todos.push(newTodo);
-    return NextResponse.json(newTodo, { status: 201 });
+    return NextResponse.json(result.rows[0], { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Failed to create todo" },
+      { status: 500 }
+    );
   }
 }

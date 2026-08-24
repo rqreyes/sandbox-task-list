@@ -1,53 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
+import { query } from "@/lib/db";
 
-interface Todo {
-  id: number;
-  title: string;
-  completed: boolean;
-}
-
-// Mock reference to the same array
-declare global {
-  var sharedTodos: Todo[];
-}
-
-// Helper to access data
-const todos = global.sharedTodos || [
-  { id: 1, title: "Learn Next.js Backend", completed: true },
-  { id: 2, title: "Build Route Handlers", completed: false },
-];
-global.sharedTodos = todos;
-
-type RouteContext = {
+type Context = {
   params: Promise<{ id: string }>;
 };
 
 // PUT: Update a todo
-export async function PUT(request: NextRequest, context: RouteContext) {
-  const { id } = await context.params;
-  const body = await request.json();
-  const { title, completed } = body;
+export async function PUT(request: NextRequest, { params }: Context) {
+  try {
+    const { id } = await params;
+    const { title, completed } = await request.json();
 
-  const todo = todos.find((t) => t.id === Number(id));
-  if (!todo) {
-    return NextResponse.json({ error: "Todo not found" }, { status: 404 });
+    const result = await query(
+      "UPDATE todos SET title = COALESCE($1, title), completed = COALESCE($2, completed) WHERE id = $3 RETURNING *",
+      [title, completed, id],
+    );
+
+    if (result.rows.length === 0) {
+      return NextResponse.json({ error: "Todo not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(result.rows[0], { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to update todo" }, { status: 500 });
   }
-
-  if (title !== undefined) todo.title = title;
-  if (completed !== undefined) todo.completed = completed;
-
-  return NextResponse.json(todo, { status: 200 });
 }
 
 // DELETE: Remove a todo
-export async function DELETE(request: NextRequest, context: RouteContext) {
-  const { id } = await context.params;
-  const index = todos.findIndex((t) => t.id === Number(id));
+export async function DELETE(request: NextRequest, { params }: Context) {
+  try {
+    const { id } = await params;
 
-  if (index === -1) {
-    return NextResponse.json({ error: "Todo not found" }, { status: 404 });
+    const result = await query("DELETE FROM todos WHERE id = $1 RETURNING *", [id]);
+
+    if (result.rows.length === 0) {
+      return NextResponse.json({ error: "Todo not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(result.rows[0], { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to delete todo" }, { status: 500 });
   }
-
-  const [deletedTodo] = todos.splice(index, 1);
-  return NextResponse.json(deletedTodo, { status: 200 });
 }
